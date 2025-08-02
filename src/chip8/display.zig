@@ -6,11 +6,16 @@ const baseHeight: u8 = 32;
 pub const Display = struct {
     width: u16,
     height: u16,
+    buffer: [baseWidth * baseHeight]u8,
 
     pub fn init(width: u16, height: u16) Display {
+        var buffer: [baseWidth * baseHeight]u8 = undefined;
+        @memset(buffer[0..], 0);
+
         return Display{
             .width = width,
             .height = height,
+            .buffer = buffer,
         };
     }
 
@@ -24,8 +29,9 @@ pub const Display = struct {
         while (y < baseHeight) : (y += 1) {
             var x: u8 = 0;
             while (x < baseWidth) : (x += 1) {
-                // TODO: Check pixel state (on or off)
-                rl.drawRectangle(x * self.width / baseWidth, y * self.height / baseHeight, self.width / baseWidth, self.height / baseHeight, .white);
+                if (self.buffer[y * baseWidth + x]) {
+                    rl.drawRectangle(x * self.width / baseWidth, y * self.height / baseHeight, self.width / baseWidth, self.height / baseHeight, .white);
+                }
             }
         }
     }

@@ -2,13 +2,14 @@ const std = @import("std");
 const rl = @import("raylib");
 const Display = @import("chip8/display.zig").Display;
 const Memory = @import("chip8/memory.zig").Memory;
+const CPU = @import("chip8/cpu.zig").CPU;
 
 const screenWidth = 640;
 const screenHeight = 320;
 
 const display = Display.init(screenWidth, screenHeight);
-
 var memory = Memory.init();
+var cpu = CPU.init(&memory, &display);
 
 pub fn main() anyerror!void {
     try memory.loadRom("ibm-logo.ch8");
@@ -27,6 +28,7 @@ pub fn main() anyerror!void {
         //----------------------------------------------------------------------------------
 
         // Draw
+        // Might want to redraw only if the display has changed (2 instructions do this)
         display.draw();
     }
 }
