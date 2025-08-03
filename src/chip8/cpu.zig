@@ -37,11 +37,84 @@ pub const CPU = struct {
     }
 
     pub fn cpuCycle(self: *CPU) void {
-        const opcode: u16 = self.memory.data[self.pc] << 8 | self.memory.data[self.pc + 1];
+        const opcode: u16 = @as(u16, self.memory.data[self.pc]) << 8 | self.memory.data[self.pc + 1];
         self.pc += 2; // Move to the next instruction
 
         // Decode and execute the opcode
-        switch (opcode & 0xF000) {}
+        switch (opcode & 0xF000) {
+            0x0000 => {
+                switch (opcode) {
+                    0x00E0 => {
+                        // Clear the display
+                        for (0..(self.display.buffer.len)) |i| {
+                            self.display.buffer[i] = false;
+                        }
+                        //self.display.draw();
+                    },
+                    else => {
+                        // Handle other 0x0000 opcodes here
+                        std.debug.print("Unknown opcode: {x}\n", .{opcode});
+                    },
+                }
+            },
+            0x1000 => {
+                // Jump to address NNN
+                self.pc = opcode & 0x0FFF;
+            },
+            0x6000 => {
+                // Set Vx to NN
+                const x: u8 = @as(u8, @intCast((opcode & 0x0F00) >> 8));
+                const nn: u8 = @as(u8, @intCast(opcode & 0x00FF));
+                self.v[x] = nn;
+            },
+            0x7000 => {
+                // Add NN to Vx
+                const x: u8 = @as(u8, @intCast((opcode & 0x0F00) >> 8));
+                const nn: u8 = @as(u8, @intCast(opcode & 0x00FF));
+                self.v[x] +%= nn;
+            },
+            0xA000 => {
+                // Set I to NNN
+                self.ir = opcode & 0x0FFF;
+            },
+            0xD000 => {
+                // Draw sprite at coordinate (Vx, Vy) with height N
+                var x: u8 = @as(u8, @intCast((opcode & 0x0F00) >> 8));
+                var y: u8 = @as(u8, @intCast((opcode & 0x00F0) >> 4));
+                const height: u8 = @as(u8, @intCast(opcode & 0x000F));
+
+                x = self.v[x] & 63;
+                y = self.v[y] & 31;
+
+                var row: u8 = 0;
+                while (row < height) : (row += 1) {
+                    const spriteByte: u8 = self.memory.data[self.ir + row];
+                    var col: u8 = 0;
+                    while (col < 8) : (col += 1) {
+                        const shiftedCol: u8 = @as(u8, 128) >> @intCast(col);
+                        const pixel: bool = (spriteByte & shiftedCol) != 0;
+                        if (pixel) {
+                            const pixelX: u16 = (x + col) % 64;
+                            const pixelY: u16 = (y + row) % 32;
+
+                            if (self.display.buffer[pixelY * 64 + pixelX] == true) {
+                                // Collision detected
+                                self.v[0xF] = 1; // Set VF to 1
+                            } else {
+                                self.v[0xF] = 0; // No collision
+                            }
+
+                            self.display.buffer[pixelY * 64 + pixelX] ^= true; // Toggle pixel
+                        }
+                    }
+                }
+                //self.display.draw();
+            },
+            else => {
+                // Handle unknown opcodes
+                std.debug.print("Unknown opcode: {x}\n", .{opcode});
+            },
+        }
 
         // Update Timers
         if (self.delayTimer > 0) self.delayTimer -= 1;

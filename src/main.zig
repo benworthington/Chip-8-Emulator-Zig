@@ -4,15 +4,15 @@ const Display = @import("chip8/display.zig").Display;
 const Memory = @import("chip8/memory.zig").Memory;
 const CPU = @import("chip8/cpu.zig").CPU;
 
-const screenWidth = 640;
-const screenHeight = 320;
+const screenWidth = 640 * 1.5;
+const screenHeight = 320 * 1.5;
 
-const display = Display.init(screenWidth, screenHeight);
+var display = Display.init(screenWidth, screenHeight);
 var memory = Memory.init();
 var cpu = CPU.init(&memory, &display);
 
 pub fn main() anyerror!void {
-    try memory.loadRom("ibm-logo.ch8");
+    try memory.loadRom("test_opcode.ch8");
 
     rl.initWindow(screenWidth, screenHeight, "Chip-8 Emulator");
     defer rl.closeWindow(); // Close window and OpenGL context
@@ -23,12 +23,7 @@ pub fn main() anyerror!void {
     // Main game loop
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
-        //----------------------------------------------------------------------------------
-
-        // Draw
-        // Might want to redraw only if the display has changed (2 instructions do this)
+        cpu.cpuCycle();
         display.draw();
     }
 }

@@ -1,16 +1,16 @@
 const rl = @import("raylib");
 
-const baseWidth: u8 = 64;
-const baseHeight: u8 = 32;
+const baseWidth: u16 = 64;
+const baseHeight: u16 = 32;
 
 pub const Display = struct {
     width: u16,
     height: u16,
-    buffer: [baseWidth * baseHeight]u8,
+    buffer: [baseWidth * baseHeight]bool,
 
     pub fn init(width: u16, height: u16) Display {
-        var buffer: [baseWidth * baseHeight]u8 = undefined;
-        @memset(buffer[0..], 0);
+        var buffer: [baseWidth * baseHeight]bool = undefined;
+        @memset(buffer[0..], false);
 
         return Display{
             .width = width,
