@@ -20,11 +20,6 @@ pub const Display = struct {
     }
 
     pub fn draw(self: Display) void {
-        rl.beginDrawing();
-        defer rl.endDrawing();
-
-        rl.clearBackground(.black);
-
         var y: u8 = 0;
         while (y < baseHeight) : (y += 1) {
             var x: u8 = 0;
