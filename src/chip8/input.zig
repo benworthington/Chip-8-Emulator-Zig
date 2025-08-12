@@ -1,6 +1,7 @@
 const rl = @import("raylib");
+const Constants = @import("constants.zig").Constants;
 
-const KeyMap: [16]rl.KeyboardKey = .{
+const KeyMap: [Constants.KEYPAD_SIZE]rl.KeyboardKey = .{
     rl.KeyboardKey.x,
     rl.KeyboardKey.one,
     rl.KeyboardKey.two,
@@ -20,17 +21,29 @@ const KeyMap: [16]rl.KeyboardKey = .{
 };
 
 pub const Input = struct {
-    keyStates: [16]bool,
+    keyStates: [Constants.KEYPAD_SIZE]bool,
 
     pub fn init() Input {
-        return Input{
-            .keyStates = [_]bool{false} ** 16,
-        };
+        var input = Input{ .keyStates = undefined };
+        @memset(&input.keyStates, false);
+        return input;
     }
 
-    pub fn updateKeyStates(self: *Input) void {
+    pub fn update(self: *Input) void {
         for (KeyMap, 0..) |key, index| {
             self.keyStates[index] = rl.isKeyDown(key);
         }
+    }
+
+    pub fn isPressed(self: *const Input, keyIndex: usize) bool {
+        return if (keyIndex < Constants.KEYPAD_SIZE) self.keyStates[keyIndex] else false;
+    }
+
+    pub fn wasPressed(_: *const Input, keyIndex: usize) bool {
+        return if (keyIndex < Constants.KEYPAD_SIZE) rl.isKeyPressed(KeyMap[keyIndex]) else false;
+    }
+
+    pub fn wasReleased(_: *const Input, keyIndex: usize) bool {
+        return if (keyIndex < Constants.KEYPAD_SIZE) rl.isKeyReleased(KeyMap[keyIndex]) else false;
     }
 };
