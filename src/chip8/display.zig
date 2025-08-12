@@ -15,16 +15,11 @@ pub const Display = struct {
     }
 
     pub fn setPixel(self: *Display, x: usize, y: usize, value: bool) void {
-        if (x < Constants.BASE_WIDTH and y < Constants.BASE_HEIGHT) {
-            self.buffer[y * Constants.BASE_WIDTH + x] = value;
-        }
+        self.buffer[y * Constants.BASE_WIDTH + x] = value;
     }
 
     pub fn getPixel(self: *const Display, x: usize, y: usize) bool {
-        if (x < Constants.BASE_WIDTH and y < Constants.BASE_HEIGHT) {
-            return self.buffer[y * Constants.BASE_WIDTH + x];
-        }
-        return false;
+        return self.buffer[y * Constants.BASE_WIDTH + x];
     }
 
     pub fn render(self: *const Display) void {

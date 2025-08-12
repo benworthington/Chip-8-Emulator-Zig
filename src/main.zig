@@ -10,8 +10,9 @@ pub fn main() anyerror!void {
 
     rl.setTargetFPS(Constants.FRAME_RATE);
 
-    var emulator = try Emulator.init();
-    try emulator.loadRom("ibm-logo.ch8");
+    var emulator: Emulator = undefined;
+    try emulator.init();
+    try emulator.loadRom("pong.ch8");
 
     while (!rl.windowShouldClose()) {
         const deltaTime = rl.getFrameTime();

@@ -1,4 +1,5 @@
 pub const Constants = struct {
+    pub const LEGACY_MODE = false;
     pub const ROM_FOLDER = "src/roms";
 
     pub const RAM_SIZE = 4096;

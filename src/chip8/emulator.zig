@@ -15,15 +15,11 @@ pub const Emulator = struct {
     soundTimer: u8 = 0,
     timerAccumulator: f32 = 0.0,
 
-    pub fn init() !Emulator {
-        var emu = Emulator{
-            .memory = Memory.init(),
-            .display = Display.init(),
-            .input = Input.init(),
-            .cpu = undefined,
-        };
-        emu.cpu = try CPU.init(&emu.memory, &emu.display, &emu.input, &emu.delayTimer, &emu.soundTimer);
-        return emu;
+    pub fn init(emulator: *Emulator) !void {
+        emulator.memory = Memory.init();
+        emulator.display = Display.init();
+        emulator.input = Input.init();
+        emulator.cpu = try CPU.init(&emulator.memory, &emulator.display, &emulator.input, &emulator.delayTimer, &emulator.soundTimer);
     }
 
     pub fn loadRom(self: *Emulator, romName: []const u8) !void {
