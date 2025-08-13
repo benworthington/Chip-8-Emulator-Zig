@@ -1,5 +1,11 @@
 pub const Constants = struct {
-    pub const LEGACY_MODE = false;
+    pub const VF_RESET_TOGGLE = true;
+    pub const MEMORY_TOGGLE = true;
+    pub const DISPLAY_WAIT_TOGGLE = true;
+    pub const CLIPPING_TOGGLE = true;
+    pub const SHIFTING_TOGGLE = false;
+    pub const JUMPING_TOGGLE = false;
+
     pub const ROM_FOLDER = "src/roms";
 
     pub const RAM_SIZE = 4096;

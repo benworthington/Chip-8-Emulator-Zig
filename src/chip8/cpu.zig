@@ -79,29 +79,64 @@ pub const CPU = struct {
             .LD_VX_NN => |data| self.v[data.vx] = data.nn,
             .ADD_VX_NN => |data| self.v[data.vx] +%= data.nn,
             .LD_VX_VY => |data| self.v[data.vx] = self.v[data.vy],
-            .OR_VX_VY => |data| self.v[data.vx] |= self.v[data.vy],
-            .AND_VX_VY => |data| self.v[data.vx] &= self.v[data.vy],
-            .XOR_VX_VY => |data| self.v[data.vx] ^= self.v[data.vy],
+            .OR_VX_VY => |data| {
+                self.v[data.vx] |= self.v[data.vy];
+                if (Constants.VF_RESET_TOGGLE) {
+                    self.v[0xF] = 0; // Reset VF if toggled
+                }
+            },
+            .AND_VX_VY => |data| {
+                self.v[data.vx] &= self.v[data.vy];
+                if (Constants.VF_RESET_TOGGLE) {
+                    self.v[0xF] = 0; // Reset VF if toggled
+                }
+            },
+            .XOR_VX_VY => |data| {
+                self.v[data.vx] ^= self.v[data.vy];
+                if (Constants.VF_RESET_TOGGLE) {
+                    self.v[0xF] = 0; // Reset VF if toggled
+                }
+            },
             .ADD_VX_VY => |data| {
-                const result = self.v[data.vx] +% self.v[data.vy];
-                self.v[data.vx] = @as(u8, result);
-                self.v[0xF] = if (result > 0xFF) 1 else 0;
+                const sum: u9 = @as(u9, self.v[data.vx]) + @as(u9, self.v[data.vy]);
+                self.v[data.vx] = @truncate(sum);
+                self.v[0xF] = if (sum > 0xFF) 1 else 0;
             },
             .SUB_VX_VY => |data| {
-                self.v[0xF] = if (self.v[data.vx] > self.v[data.vy]) 1 else 0;
+                const noBorrow: u1 = if (self.v[data.vx] >= self.v[data.vy]) 1 else 0;
                 self.v[data.vx] -%= self.v[data.vy];
+                self.v[0xF] = noBorrow;
             },
-            .SHR_VX => |vx| {
-                self.v[0xF] = self.v[vx] & 1;
-                self.v[vx] >>= 1;
+            .SHR_VX => |data| {
+                if (Constants.SHIFTING_TOGGLE) {
+                    // Modern: shift vX directly
+                    const original = self.v[data.vx];
+                    self.v[data.vx] = original >> 0x1;
+                    self.v[0xF] = original & 0x1;
+                } else {
+                    // Original: copy vY into vX first, then shift
+                    const original = self.v[data.vy];
+                    self.v[data.vx] = original >> 0x1;
+                    self.v[0xF] = original & 0x1;
+                }
             },
             .SUBN_VX_VY => |data| {
-                self.v[0xF] = if (self.v[data.vy] > self.v[data.vx]) 1 else 0;
-                self.v[data.vx] = @as(u8, self.v[data.vy] - self.v[data.vx]);
+                const noBorrow: u1 = if (self.v[data.vy] >= self.v[data.vx]) 1 else 0;
+                self.v[data.vx] = self.v[data.vy] -% self.v[data.vx];
+                self.v[0xF] = noBorrow;
             },
-            .SHL_VX => |vx| {
-                self.v[0xF] = self.v[vx] >> 7;
-                self.v[vx] <<= 1;
+            .SHL_VX => |data| {
+                if (Constants.SHIFTING_TOGGLE) {
+                    // Modern: shift vX directly
+                    const original = self.v[data.vx];
+                    self.v[data.vx] = original << 0x1;
+                    self.v[0xF] = original >> 7;
+                } else {
+                    // Original: copy vY into vX first, then shift
+                    const original = self.v[data.vy];
+                    self.v[data.vx] = original << 0x1;
+                    self.v[0xF] = original >> 7;
+                }
             },
             .SNE_VX_VY => |data| {
                 if (self.v[data.vx] != self.v[data.vy]) self.pc += 2;
@@ -123,8 +158,21 @@ pub const CPU = struct {
                     while (col < 8) : (col += 1) {
                         const mask: u8 = @as(u8, 0x80) >> @intCast(col);
                         if ((spriteByte & mask) != 0) {
-                            const pixelX: u16 = (x + col) % Constants.BASE_WIDTH;
-                            const pixelY: u16 = (y + row) % Constants.BASE_HEIGHT;
+                            var pixelX: u16 = x + col;
+                            var pixelY: u16 = y + row;
+
+                            if (!Constants.CLIPPING_TOGGLE) {
+                                // Wrap mode
+                                pixelX = @intCast((@as(u16, @intCast(pixelX)) % Constants.BASE_WIDTH));
+                                pixelY = @intCast((@as(u16, @intCast(pixelY)) % Constants.BASE_HEIGHT));
+                            } else {
+                                // Clip mode — skip if outside
+                                if (pixelX < 0 or pixelX >= Constants.BASE_WIDTH or
+                                    pixelY < 0 or pixelY >= Constants.BASE_HEIGHT)
+                                {
+                                    continue;
+                                }
+                            }
 
                             if (self.display.getPixel(pixelX, pixelY)) {
                                 // Any collision sets VF to 1
@@ -153,7 +201,7 @@ pub const CPU = struct {
                 var found: bool = false;
                 var pressed_key: u8 = 0;
                 for (0..Constants.KEYPAD_SIZE) |i| {
-                    if (self.input.wasPressed(i)) {
+                    if (self.input.wasReleased(i)) {
                         found = true;
                         pressed_key = @intCast(i);
                         break;
@@ -184,19 +232,21 @@ pub const CPU = struct {
                 self.memory.data[self.ir + 2] = value % 10;
             },
             .LD_I_VX => |vx| {
-                for (0..(vx + 1)) |i| {
+                const n: usize = @as(usize, vx) + 1;
+                for (0..n) |i| {
                     self.memory.data[self.ir + i] = self.v[i];
-                    if (Constants.LEGACY_MODE) {
-                        self.ir += 1;
-                    }
+                }
+                if (Constants.MEMORY_TOGGLE) {
+                    self.ir += @intCast(n);
                 }
             },
             .LD_VX_I => |vx| {
-                for (0..(vx + 1)) |i| {
+                const n: usize = @as(usize, vx) + 1;
+                for (0..n) |i| {
                     self.v[i] = self.memory.data[self.ir + i];
-                    if (Constants.LEGACY_MODE) {
-                        self.ir += 1;
-                    }
+                }
+                if (Constants.MEMORY_TOGGLE) {
+                    self.ir += @intCast(n);
                 }
             },
             .UNKNOWN => |raw| {

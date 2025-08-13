@@ -20,9 +20,9 @@ pub const Instruction = union(enum) {
     XOR_VX_VY: struct { vx: u4, vy: u4 }, // 8XY3
     ADD_VX_VY: struct { vx: u4, vy: u4 }, // 8XY4
     SUB_VX_VY: struct { vx: u4, vy: u4 }, // 8XY5
-    SHR_VX: u4, // 8XY6
+    SHR_VX: struct { vx: u4, vy: u4 }, // 8XY6
     SUBN_VX_VY: struct { vx: u4, vy: u4 }, // 8XY7
-    SHL_VX: u4, // 8XYE
+    SHL_VX: struct { vx: u4, vy: u4 }, // 8XYE
 
     // Skip if not equal
     SNE_VX_VY: struct { vx: u4, vy: u4 }, // 9XY0
@@ -80,9 +80,9 @@ pub const Instruction = union(enum) {
                 0x3 => Instruction{ .XOR_VX_VY = .{ .vx = x, .vy = y } },
                 0x4 => Instruction{ .ADD_VX_VY = .{ .vx = x, .vy = y } },
                 0x5 => Instruction{ .SUB_VX_VY = .{ .vx = x, .vy = y } },
-                0x6 => Instruction{ .SHR_VX = x },
+                0x6 => Instruction{ .SHR_VX = .{ .vx = x, .vy = y } },
                 0x7 => Instruction{ .SUBN_VX_VY = .{ .vx = x, .vy = y } },
-                0xE => Instruction{ .SHL_VX = x },
+                0xE => Instruction{ .SHL_VX = .{ .vx = x, .vy = y } },
                 else => Instruction{ .UNKNOWN = opcode },
             },
             0x9000 => if (n == 0) Instruction{ .SNE_VX_VY = .{ .vx = x, .vy = y } } else Instruction{ .UNKNOWN = opcode },
